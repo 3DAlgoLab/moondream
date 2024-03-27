@@ -30,7 +30,7 @@ moondream.eval()
 
 def answer_question(img, prompt):
     image_embeds = moondream.encode_image(img)
-    streamer = TextIteratorStreamer(tokenizer, skip_special_tokens=True)
+    streamer = TextIteratorStreamer(tokenizer, skip_special_tokens=True)  # type: ignore
     thread = Thread(
         target=moondream.answer_question,
         kwargs={
