@@ -308,7 +308,7 @@ moondream.eval()
 
 correct = 0
 
-for i, sample in enumerate(datasets["test"]):
+for i, sample in enumerate(datasets["test"]):  # type: ignore
     md_answer = moondream.answer_question(
         moondream.encode_image(sample["image"]),
         sample["qa"][0]["question"],
