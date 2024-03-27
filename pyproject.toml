@@ -15,6 +15,7 @@ dependencies = [
   "transformers>=4.36.2",
   "einops>=0.7.0",
   "gradio>=4.15.0",
+  "datasets>=2.18.0",
 ]
 
 [project.urls]
