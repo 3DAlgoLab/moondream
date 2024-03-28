@@ -10,7 +10,9 @@ moondream = Moondream.from_pretrained(
     model_id,
     revision=LATEST_REVISION,
     torch_dtype=dtype,
-).to(device=device)
+).to(
+    device=device
+)  # type: ignore
 moondream.eval()
 
 image1 = Image.open("assets/demo-1.jpg")

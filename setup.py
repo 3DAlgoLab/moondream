@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="moondream",
-    version="0.2.0.dev",
+    version="0.2.2.dev",
     description="a tiny vision language model that kicks ass and runs anywhere",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
@@ -12,7 +12,7 @@ setup(
     author="vikhyatk",
     author_email="contact@moondream.ai",
     url="https://github.com/3DAlgoLab/moondream",
-    packages=find_packages(include=["moondream", "moondream.*"]),
+    packages=find_packages(include=["moondream", "moondream.*", "examples"]),
     entry_points={},
     python_requires=">=3.8.0",
     install_requires=[

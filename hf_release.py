@@ -16,6 +16,6 @@ model.vision_encoder.projection.load_state_dict(
 model.text_model.load_state_dict(
     torch.load("checkpoints/text_model.s9001.pt", map_location="cpu")
 )
-model = model.to(dtype=torch.float16)
+model = model.to(dtype=torch.float16)  # type: ignore
 
 model.push_to_hub("vikhyatk/moondream2", config=config)

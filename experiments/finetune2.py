@@ -80,11 +80,11 @@ EPOCHS = 2
 # Decrease it if you're running out of memory.
 # Batch size 8 currently uses around
 # 15 GB of GPU memory during fine-tuning.
-BATCH_SIZE = 8
+BATCH_SIZE = 2
 
 # Number of batches to process before updating the model. You can use this to simulate a higher batch
 # size than your GPU can handle. Set this to 1 to disable gradient accumulation.
-GRAD_ACCUM_STEPS = 1
+GRAD_ACCUM_STEPS = 4
 
 # Learning rate for the Adam optimizer. Needs to be tuned on a case-by-case basis.
 # As a general rule of thumb, increase it by 1.4 times each time you double
@@ -98,8 +98,8 @@ GRAD_ACCUM_STEPS = 1
 LR = 3e-5
 
 # Whether to use Weights and Biases for logging training metrics.
-USE_WANDB = False
-
+USE_WANDB = True
+VAL_STEPS = 100
 
 # %%
 from torch.utils.data import DataLoader
@@ -241,8 +241,10 @@ if USE_WANDB:
     )
 
 i = 0
+val_loss_best = float("inf")
 for epoch in range(EPOCHS):
     for batch in tqdm(dataloaders["train"], desc=f"Epoch {epoch + 1}/{EPOCHS}"):
+        moondream.train()
         i += 1
 
         loss = compute_loss(batch)
@@ -256,30 +258,36 @@ for epoch in range(EPOCHS):
             for param_group in optimizer.param_groups:
                 param_group["lr"] = lr
 
-        if i % 100 == 0 and USE_WANDB:
+        if i % VAL_STEPS == 0 and USE_WANDB:
             # Calculate validation loss
+            moondream.eval()
             val_loss = 0
             for val_batch in tqdm(dataloaders["val"], desc="Validation"):
                 with torch.no_grad():
                     val_loss += compute_loss(val_batch).item()
             val_loss /= len(dataloaders["val"])
 
+            if val_loss_best > val_loss:
+                val_loss_best = val_loss
+                moondream.save_pretrained("checkpoints/moondream-ft")
+
         if USE_WANDB:
             wandb.log(
                 {"loss/train": loss.item(), "lr": optimizer.param_groups[0]["lr"]}
-                | ({"loss/val": val_loss} if i % 100 == 0 else {})
+                | ({"loss/val": val_loss} if i % VAL_STEPS == 0 else {})
             )
 
 if USE_WANDB:
     wandb.finish()
 
 # %%
-moondream.save_pretrained("checkpoints/moondream-ft")
+# moondream.save_pretrained("checkpoints/moondream-ft")
 
 # %% [markdown]
 # Now that training has completed, let's inspect a few samples and calculate accuracy.
 
 # %%
+moondream.from_pretrained("checkpoints/moondream-ft")
 moondream.eval()
 
 correct = 0
