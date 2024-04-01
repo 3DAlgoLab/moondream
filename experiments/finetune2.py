@@ -280,32 +280,33 @@ for epoch in range(EPOCHS):
 if USE_WANDB:
     wandb.finish()
 
-# %%
-# moondream.save_pretrained("checkpoints/moondream-ft")
 
-# %% [markdown]
-# Now that training has completed, let's inspect a few samples and calculate accuracy.
+def main():
+    # %%
+    # moondream.save_pretrained("checkpoints/moondream-ft")
+    # Now that training has completed, let's inspect a few samples and calculate accuracy.
+    moondream.from_pretrained("checkpoints/moondream-ft")
+    moondream.eval()
+    correct = 0
 
-# %%
-moondream.from_pretrained("checkpoints/moondream-ft")
-moondream.eval()
+    for i, sample in enumerate(datasets["test"]):  # type: ignore
+        md_answer = moondream.answer_question(
+            moondream.encode_image(sample["image"]),
+            sample["qa"][0]["question"],
+            tokenizer=tokenizer,
+        )
 
-correct = 0
+        if md_answer == sample["qa"][0]["answer"]:
+            correct += 1
 
-for i, sample in enumerate(datasets["test"]):  # type: ignore
-    md_answer = moondream.answer_question(
-        moondream.encode_image(sample["image"]),
-        sample["qa"][0]["question"],
-        tokenizer=tokenizer,
-    )
+        if i < 3:
+            display(sample["image"])
+            print("Question:", sample["qa"][0]["question"])
+            print("Ground Truth:", sample["qa"][0]["answer"])
+            print("Moondream:", md_answer)
 
-    if md_answer == sample["qa"][0]["answer"]:
-        correct += 1
+    print(f"\n\nAccuracy: {correct / len(datasets['test']) * 100:.2f}%")
 
-    if i < 3:
-        display(sample["image"])
-        print("Question:", sample["qa"][0]["question"])
-        print("Ground Truth:", sample["qa"][0]["answer"])
-        print("Moondream:", md_answer)
 
-print(f"\n\nAccuracy: {correct / len(datasets['test']) * 100:.2f}%")
+if __name__ == "__main__":
+    main()

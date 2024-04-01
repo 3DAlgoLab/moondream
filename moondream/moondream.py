@@ -7,6 +7,7 @@ import re
 from .modeling_phi import PhiForCausalLM
 from .configuration_moondream import PhiConfig
 
+
 class Moondream(PreTrainedModel):
     config_class = MoondreamConfig
     _supports_flash_attn_2 = True

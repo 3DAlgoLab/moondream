@@ -2,6 +2,7 @@ import torch
 
 LATEST_REVISION = "2024-03-13"
 
+
 def detect_device():
     """
     Detects the appropriate device to run on, and return the device and dtype.
