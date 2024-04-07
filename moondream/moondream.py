@@ -2,11 +2,9 @@ import torch
 from .vision_encoder import VisionEncoder
 from .configuration_moondream import MoondreamConfig
 from transformers import PreTrainedModel
-import re
 
 from .modeling_phi import PhiForCausalLM
 from .configuration_moondream import PhiConfig
-
 
 class Moondream(PreTrainedModel):
     config_class = MoondreamConfig
@@ -14,7 +12,9 @@ class Moondream(PreTrainedModel):
 
     def __init__(self, config):
         super().__init__(config)
-        self.vision_encoder = VisionEncoder()
+        self.vision_encoder = VisionEncoder(
+            use_flash_attn=config._attn_implementation == "flash_attention_2"
+        )
 
         if type(config.phi_config) == dict:
             phi_config = PhiConfig(
@@ -63,16 +63,13 @@ class Moondream(PreTrainedModel):
         image_embeds,
         prompt,
         tokenizer,
-        eos_text="<END>",
         max_new_tokens=128,
         **kwargs,
     ):
-        eos_tokens = tokenizer(eos_text, add_special_tokens=False)[0].ids
-
         generate_config = {
-            "eos_token_id": eos_tokens,
+            "eos_token_id": tokenizer.eos_token_id,
             "bos_token_id": tokenizer.bos_token_id,
-            "pad_token_id": tokenizer.eos_token_id,
+            "pad_token_id": tokenizer.bos_token_id,
             "max_new_tokens": max_new_tokens,
             **kwargs,
         }
@@ -98,12 +95,11 @@ class Moondream(PreTrainedModel):
         answer = self.generate(
             image_embeds,
             prompt,
-            eos_text="<END>",
             tokenizer=tokenizer,
             max_new_tokens=512,
             **kwargs,
         )[0]
-        cleaned_answer = re.sub("<$|<END$", "", answer).strip()
+        cleaned_answer = answer.strip()
 
         # Use the result_queue to pass the result if it is provided
         if result_queue:
@@ -118,8 +114,6 @@ class Moondream(PreTrainedModel):
         tokenizer,
         **kwargs,
     ):
-        eos_tokens = tokenizer("<END>", add_special_tokens=False)[0].ids
-
         image_embeds = self.encode_image(images)
 
         templated_prompts = [
@@ -160,9 +154,9 @@ class Moondream(PreTrainedModel):
         )
 
         generate_config = {
-            "eos_token_id": eos_tokens,
+            "eos_token_id": tokenizer.eos_token_id,
             "bos_token_id": tokenizer.bos_token_id,
-            "pad_token_id": tokenizer.eos_token_id,
+            "pad_token_id": tokenizer.bos_token_id,
             "max_new_tokens": 512,
             **kwargs,
         }
@@ -175,6 +169,6 @@ class Moondream(PreTrainedModel):
             )
 
         return [
-            re.sub("<$|<END$", "", x).strip()
+            x.strip()
             for x in tokenizer.batch_decode(output_ids, skip_special_tokens=True)
         ]

@@ -1,6 +1,7 @@
 import argparse
 import torch
 import re
+import time
 import gradio as gr
 from moondream import detect_device, LATEST_REVISION
 from threading import Thread
@@ -44,25 +45,57 @@ def answer_question(img, prompt):
 
     buffer = ""
     for new_text in streamer:
-        clean_text = re.sub("<$|<END$", "", new_text)
+        clean_text = re.sub("<$|END$", "", new_text)
         buffer += clean_text
-        yield buffer
+        yield buffer.strip("<END")
 
 
 with gr.Blocks() as demo:
-    gr.Markdown(
+    gr.Markdown("# 🌔 moondream")
+
+    gr.HTML(
         """
-        # 🌔 moondream
-        ### A tiny vision language model. [GitHub](https://github.com/vikhyat/moondream)
+        <style type="text/css">
+            .md_output p {
+                padding-top: 1rem;
+                font-size: 1.2rem !important;
+            }
+        </style>
         """
     )
+
     with gr.Row():
-        prompt = gr.Textbox(label="Input Prompt", placeholder="Type here...", scale=4)
-        submit = gr.Button("Submit")
+        prompt = gr.Textbox(
+            label="Prompt",
+            value="What's going on? Respond with a single sentence.",
+            interactive=True,
+        )
     with gr.Row():
-        img = gr.Image(type="pil", label="Upload an Image")
-        output = gr.TextArea(label="Response")
-    submit.click(answer_question, [img, prompt], output)
-    prompt.submit(answer_question, [img, prompt], output)
+        img = gr.Image(type="pil", label="Upload an Image", streaming=True)
+        output = gr.Markdown(elem_classes=["md_output"])
+
+    latest_img = None
+    latest_prompt = prompt.value
+
+    @img.change(inputs=[img])
+    def img_change(img):
+        global latest_img
+        latest_img = img
+
+    @prompt.change(inputs=[prompt])
+    def prompt_change(prompt):
+        global latest_prompt
+        latest_prompt = prompt
+
+    @demo.load(outputs=[output])
+    def live_video():
+        while True:
+            if latest_img is None:
+                time.sleep(0.1)
+            else:
+                for text in answer_question(latest_img, latest_prompt):
+                    if len(text) > 0:
+                        yield text
+
 
 demo.queue().launch(debug=True, share=True)
