@@ -1,5 +1,4 @@
 import argparse
-
 import evaluate
 import torch
 from datasets import load_dataset
@@ -13,6 +12,7 @@ from transformers import (
 )
 
 from accelerate import Accelerator, DistributedType
+import time
 
 MAX_GPU_BATCH_SIZE = 16
 EVAL_BATCH_SIZE = 32
@@ -45,6 +45,7 @@ def get_dataloaders(accelerator: Accelerator, batch_size: int = 16):
     # Apply the method we just defined to all the examples in all the splits of the dataset
     # starting with the main process first:
     with accelerator.main_process_first():
+        print("accelerator.main_process_first() is runned!")
         tokenized_datasets = datasets.map(
             tokenize_function,
             batched=True,
@@ -56,7 +57,8 @@ def get_dataloaders(accelerator: Accelerator, batch_size: int = 16):
     tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
 
     def collate_fn(examples):
-        # For Torchxla, it's best to pad everything to the same length or training will be very slow.
+        # For Torchxla, it's best to pad everything to the same length
+        # or training will be very slow.
         max_length = (
             128 if accelerator.distributed_type == DistributedType.XLA else None
         )
@@ -198,10 +200,12 @@ def main():
     )
     args = parser.parse_args()
     factor = 2
+    seed = time.time_ns() % 1000
+    print(f"random seed is set as {seed}")
     config = {
         "lr": 2e-5 * factor,
         "num_epochs": 10,
-        "seed": 42,
+        "seed": seed,
         "batch_size": int(16 * factor),
     }
     training_function(config, args)
